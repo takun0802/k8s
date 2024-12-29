@@ -5,11 +5,13 @@ phases:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
       - REPOSITORY_URI=513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
+      - echo Logging in to Docker Hub...
+      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
 
   build:
     commands:         
       - echo Building the Docker image...
-      - docker build -t $REPOSITORY_URI:latest ./nginx
+      - docker build -t $REPOSITORY_URI:latest .
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
 
   post_build:

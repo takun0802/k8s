@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to NGINX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #weather {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to NGINX777</h1>
+    <h2>Weather Information</h2>
+    <div id="weather">
+        Loading weather data...
+    </div>
+
+    <script>
+        async function fetchWeather() {
+            const apiUrl = "https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current_weather=true";
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                const weatherDiv = document.getElementById('weather');
+                weatherDiv.innerHTML = `
+                    <p>Temperature: ${data.current_weather.temperature}°C</p>
+                    <p>Wind Speed: ${data.current_weather.windspeed} km/h</p>
+                    <p>Weather: ${data.current_weather.weathercode}</p>
+                `;
+            } catch (error) {
+                document.getElementById('weather').textContent = `Error fetching weather data: ${error.message}`;
+            }
+        }
+
+        // Call the function when the page loads
+        fetchWeather();
+    </script>
+</body>
+</html>

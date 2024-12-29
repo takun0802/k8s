@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx-app-deployment
+spec:
+  replicas: 1  # ここを1に設定
+  selector:
+    matchLabels:
+      app: my-nginx-app
+  template:
+    metadata:
+      labels:
+        app: my-nginx-app
+    spec:
+      containers:
+      - name: my-nginx-app
+        image: "513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu/my-nginx-app:latest"
+        ports:
+        - containerPort: 80

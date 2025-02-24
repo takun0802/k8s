@@ -21,16 +21,31 @@ phases:
       # NGINX コンテナを起動
       - docker run -d -p 80:80 $REPOSITORY_URI:latest
 
-      # アクセスして、期待する文字列が表示されるか確認
+      # 必要な依存関係をインストール (Puppeteer)
+      - npm install puppeteer
+
+      # Puppeteerで表示を確認
       - |
         echo "Checking if 'Welcome to NGINX123' is displayed on the web page..."
-        RESPONSE=$(curl --silent http://localhost)
-        if [[ "$RESPONSE" == *"Welcome"* ]]; then
-          echo "Test passed: 'Welcome to NGINX123' found."
-        else
-          echo "Test failed: 'Welcome to NGINX123' not found."
-          exit 1  # テスト失敗時に CodeBuild を失敗させる
-        fi
+
+        # Puppeteerを使ってページを開き、テキストが表示されているか確認する
+        node -e "
+          const puppeteer = require('puppeteer');
+          (async () => {
+            const browser = await puppeteer.launch();
+            const page = await browser.newPage();
+            await page.goto('http://localhost');
+            const text = await page.evaluate(() => document.body.innerText);
+            if (text.includes('Welcome to NGINX123')) {
+              console.log('Test passed: Welcome to NGINX123 found.');
+              process.exit(0);
+            } else {
+              console.error('Test failed: Welcome to NGINX123 not found.');
+              process.exit(1);
+            }
+            await browser.close();
+          })();
+        "
 
       # イメージを ECR にプッシュ
       - echo Pushing the Docker image to ECR...

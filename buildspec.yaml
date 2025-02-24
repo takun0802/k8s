@@ -6,8 +6,7 @@ phases:
       nodejs: 18
     commands:
       - echo Installing Puppeteer dependencies...
-      - amazon-linux-extras enable epel
-      - yum install -y libXcomposite libXcursor libXdamage libXext libXi libXtst cups-libs libXScrnSaver libXrandr alsa-lib pango atk at-spi2-atk gtk3
+      - yum install -y xorg-x11-server-Xvfb libXcomposite libXcursor libXdamage libXext libXi libXtst cups-libs libXScrnSaver libXrandr alsa-lib pango atk at-spi2-atk gtk3 || true
       - npm install puppeteer
 
   pre_build:

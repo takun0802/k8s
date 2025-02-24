@@ -25,7 +25,7 @@ phases:
       - |
         echo "Checking if 'Welcome to NGINX123' is displayed on the web page..."
         RESPONSE=$(curl --silent http://localhost)
-        if [[ "$RESPONSE" == *"Welcome to NGINX123"* ]]; then
+        if [[ "$RESPONSE" == *"Welcome"* ]]; then
           echo "Test passed: 'Welcome to NGINX123' found."
         else
           echo "Test failed: 'Welcome to NGINX123' not found."

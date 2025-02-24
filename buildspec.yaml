@@ -15,27 +15,23 @@ phases:
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
 
   post_build:
-  commands:
-    - echo "Checking if 'Welcome to NGINX123' is displayed on the web page..."
-    - |
-      node -e "
-        const puppeteer = require('puppeteer');
-        (async () => {
-          const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-          const page = await browser.newPage();
-          await page.goto('http://$LB_DNS_NAME');
-          const text = await page.evaluate(() => document.body.innerText);
-          if (text.includes('Welcome to NGINX123')) {
-            console.log('Test passed: Welcome to NGINX123 found.');
-            process.exit(0);
-          } else {
-            console.error('Test failed: Welcome to NGINX123 not found.');
-            process.exit(1);
-          }
-          await browser.close();
-        })();
-      "
-
-      # イメージを ECR にプッシュ
-      - echo Pushing the Docker image to ECR...
-      - docker push $REPOSITORY_URI:latest
+    commands:
+      - echo "Checking if 'Welcome to NGINX123' is displayed on the web page..."
+      - |
+        node -e "
+          const puppeteer = require('puppeteer');
+          (async () => {
+            const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+            const page = await browser.newPage();
+            await page.goto('http://$LB_DNS_NAME');
+            const text = await page.evaluate(() => document.body.innerText);
+            if (text.includes('Welcome to NGINX123')) {
+              console.log('Test passed: Welcome to NGINX123 found.');
+              process.exit(0);
+            } else {
+              console.error('Test failed: Welcome to NGINX123 not found.');
+              process.exit(1);
+            }
+            await browser.close();
+          })();
+        "

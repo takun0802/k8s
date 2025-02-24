@@ -1,5 +1,15 @@
 version: 0.2
+
 phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - echo Installing Puppeteer dependencies...
+      - amazon-linux-extras enable epel
+      - yum install -y libXcomposite libXcursor libXdamage libXext libXi libXtst cups-libs libXScrnSaver libXrandr alsa-lib pango atk at-spi2-atk gtk3
+      - npm install puppeteer
+
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
@@ -16,6 +26,14 @@ phases:
 
   post_build:
     commands:
+      - echo Pushing the Docker image to ECR...
+      - docker push $REPOSITORY_URI:latest
+
+      # ELB のエンドポイントを確認
+      - echo "Checking if Load Balancer is accessible..."
+      - curl -I http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/ || exit 1
+
+      # Puppeteer を使って Web ページの表示をテスト
       - echo "Checking if 'Welcome to NGINX123' is displayed on the web page..."
       - |
         node -e "
@@ -23,15 +41,22 @@ phases:
           (async () => {
             const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
             const page = await browser.newPage();
-            await page.goto('http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/');
-            const text = await page.evaluate(() => document.body.innerText);
-            if (text.includes('Welcome to NGINX123')) {
-              console.log('Test passed: Welcome to NGINX123 found.');
-              process.exit(0);
-            } else {
-              console.error('Test failed: Welcome to NGINX123 not found.');
+            try {
+              await page.goto('http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/', { waitUntil: 'networkidle2' });
+              await page.waitForSelector('h1', { timeout: 5000 });
+              const text = await page.evaluate(() => document.body.innerText);
+              if (text.includes('Welcome to NGINX123')) {
+                console.log('Test passed: Welcome to NGINX123 found.');
+                await browser.close();
+                process.exit(0);
+              } else {
+                console.error('Test failed: Welcome to NGINX123 not found.');
+                await browser.close();
+                process.exit(1);
+              }
+            } catch (error) {
+              console.error('Test execution error:', error);
               process.exit(1);
             }
-            await browser.close();
           })();
         "

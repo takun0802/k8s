@@ -2,34 +2,31 @@ version: 0.2
 phases:
   pre_build:
   commands:
-    - echo Installing Chrome and Selenium...
-    - yum install -y wget unzip
-    - wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
-    - yum install -y ./google-chrome-stable_current_x86_64.rpm
-    - wget https://chromedriver.storage.googleapis.com/122.0.6261.94/chromedriver_linux64.zip
-    - unzip chromedriver_linux64.zip
-    - mv chromedriver /usr/bin/
+    - echo Installing dependencies...
+    - yum install -y curl jq
+    - curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+    - yum install -y nodejs
+    - npm install -g puppeteer
 
 build:
   commands:
-    - echo "Checking if the web page contains 'Welcome' using Selenium..."
-    - echo "from selenium import webdriver" > test.py
-    - echo "from selenium.webdriver.chrome.service import Service" >> test.py
-    - echo "from selenium.webdriver.common.by import By" >> test.py
-    - echo "import time" >> test.py
-    - echo "service = Service('/usr/bin/chromedriver')" >> test.py
-    - echo "options = webdriver.ChromeOptions()" >> test.py
-    - echo "options.add_argument('--headless')" >> test.py
-    - echo "driver = webdriver.Chrome(service=service, options=options)" >> test.py
-    - echo "driver.get('$URL')" >> test.py
-    - echo "time.sleep(3)" >> test.py
-    - echo "if 'Welcome' in driver.page_source:" >> test.py
-    - echo "    print('Test passed: Welcome is visible on the page.')" >> test.py
-    - echo "    exit(0)" >> test.py
-    - echo "else:" >> test.py
-    - echo "    print('Test failed: Welcome is NOT visible on the page.')" >> test.py
-    - echo "    exit(1)" >> test.py
-    - python3 test.py
+    - echo "Checking if the web page contains 'Welcome' using Puppeteer..."
+    - echo "const puppeteer = require('puppeteer');" > test.js
+    - echo "(async () => {" >> test.js
+    - echo "  const browser = await puppeteer.launch();" >> test.js
+    - echo "  const page = await browser.newPage();" >> test.js
+    - echo "  await page.goto('$URL', { waitUntil: 'domcontentloaded' });" >> test.js
+    - echo "  const content = await page.content();" >> test.js
+    - echo "  if (content.includes('Welcome')) {" >> test.js
+    - echo "    console.log('Test passed: Welcome is visible on the page.');" >> test.js
+    - echo "    process.exit(0);" >> test.js
+    - echo "  } else {" >> test.js
+    - echo "    console.log('Test failed: Welcome is NOT visible on the page.');" >> test.js
+    - echo "    process.exit(1);" >> test.js
+    - echo "  }" >> test.js
+    - echo "  await browser.close();" >> test.js
+    - echo "})();" >> test.js
+    - node test.js
 
   post_build:
     commands:

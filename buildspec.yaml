@@ -18,50 +18,51 @@ phases:
   build:
     commands:
       - echo "Starting Puppeteer test..."
-      - node -e "
-          const puppeteer = require('puppeteer');
-          (async () => {
-            const browser = await puppeteer.launch({
-              headless: 'new',
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process',
-                '--proxy-server=\"direct://\"',
-                '--proxy-bypass-list=*'
-              ]
-            });
-            const page = await browser.newPage();
-            try {
-              console.log('Testing ELB connectivity using curl...');
-              const { execSync } = require('child_process');
-              execSync('curl -I http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/ || (echo \"ELB is unreachable from CodeBuild\" && exit 1)', { stdio: 'inherit' });
+      - >
+        node -e '
+        const puppeteer = require("puppeteer");
+        (async () => {
+          const browser = await puppeteer.launch({
+            headless: "new",
+            args: [
+              "--no-sandbox",
+              "--disable-setuid-sandbox",
+              "--disable-dev-shm-usage",
+              "--disable-gpu",
+              "--single-process",
+              "--proxy-server=\"direct://\"",
+              "--proxy-bypass-list=*"
+            ]
+          });
+          const page = await browser.newPage();
+          try {
+            console.log("Testing ELB connectivity using curl...");
+            const { execSync } = require("child_process");
+            execSync("curl -I http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/ || (echo \"ELB is unreachable from CodeBuild\" && exit 1)", { stdio: "inherit" });
 
-              console.log('Navigating to the ELB URL...');
-              await page.goto('http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/', { waitUntil: 'networkidle2' });
+            console.log("Navigating to the ELB URL...");
+            await page.goto("http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/", { waitUntil: "networkidle2" });
 
-              console.log('Checking for expected text on the page...');
-              await page.waitForSelector('h1', { timeout: 5000 });
-              const text = await page.evaluate(() => document.body.innerText);
+            console.log("Checking for expected text on the page...");
+            await page.waitForSelector("h1", { timeout: 5000 });
+            const text = await page.evaluate(() => document.body.innerText);
 
-              if (text.includes('Welcome to NGINX123')) {
-                console.log('Test passed: Welcome to NGINX123 found.');
-                await browser.close();
-                process.exit(0);
-              } else {
-                console.error('Test failed: Welcome to NGINX123 not found.');
-                await browser.close();
-                process.exit(1);
-              }
-            } catch (error) {
-              console.error('Test execution error:', error);
+            if (text.includes("Welcome to NGINX123")) {
+              console.log("Test passed: Welcome to NGINX123 found.");
+              await browser.close();
+              process.exit(0);
+            } else {
+              console.error("Test failed: Welcome to NGINX123 not found.");
               await browser.close();
               process.exit(1);
             }
-          })();
-        "
+          } catch (error) {
+            console.error("Test execution error:", error);
+            await browser.close();
+            process.exit(1);
+          }
+        })();
+        '
 
   post_build:
     commands:

@@ -3,18 +3,16 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Installing dependencies..."
-      - npm install -g cypress  # Cypress をインストール
-      - Xvfb :99 &  # 仮想ディスプレイを起動
-      - export DISPLAY=:99  # Xvfb を DISPLAY に設定
-
-  pre_build:
-    commands:
-      - echo "Checking Cypress version..."
-      - cypress --version  # Cypress のバージョンを確認
-
+      - echo Installing dependencies...
+      - npm install
+      - npx cypress install  # Cypress のインストール
   build:
     commands:
-      - echo "Running Cypress test..."
-      - >
-        npx cypress run --headless --browser chrome --spec "cypress/e2e/spec.cy.js"  # Cypress テストの実行
+      - echo Running Cypress tests...
+      - npx cypress run --headless --browser electron --spec "cypress/e2e/spec.cy.js"  # Cypress テストの実行
+  post_build:
+    commands:
+      - echo Build completed
+artifacts:
+  files:
+    - '**/*'

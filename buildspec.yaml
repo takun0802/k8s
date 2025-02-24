@@ -17,10 +17,14 @@ phases:
       - URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
       - curl --head --silent --fail $URL > /dev/null
       - |
+        # 0 は成功、1 以上はエラー
         if [ $? -eq 0 ]; then
+          # Webページにアクセスできた場合、成功メッセージを表示
           echo "Test passed: Web page is accessible."
         else
+          # アクセスできなかった場合、エラーメッセージを表示
           echo "Test failed: Web page is not accessible."
+          # エラーが発生した場合、スクリプトを終了
           exit 1
         fi
 

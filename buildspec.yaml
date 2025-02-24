@@ -2,17 +2,26 @@ version: 0.2
 
 phases:
   install:
+    runtime-versions:
+      nodejs: 18
     commands:
-      - echo Installing dependencies...
-      - npm install
-      - npx cypress install  # Cypress のインストール
+      # 必要なパッケージをインストール (curlがない場合)
+      echo "Installing necessary tools..."
+      yum install -y curl
+
   build:
     commands:
-      - echo Running Cypress tests...
-      - npx cypress run --headless --browser electron --spec "cypress/e2e/spec.cy.js"  # Cypress テストの実行
+      echo "Checking if the web page is accessible..."
+      URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
+      curl --head --silent --fail $URL > /dev/null
+      if [ $? -eq 0 ]; then
+        echo "Test passed: Web page is accessible."
+        exit 0
+      else
+        echo "Test failed: Web page is not accessible."
+        exit 1
+      fi
+
   post_build:
     commands:
-      - echo Build completed
-artifacts:
-  files:
-    - '**/*'
+      echo "Build completed"

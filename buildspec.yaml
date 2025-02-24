@@ -1,35 +1,30 @@
 version: 0.2
-
 phases:
   pre_build:
     commands:
-      - echo "Installing dependencies..."
-      - yum install -y curl jq
-      - curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-      - yum install -y nodejs
-      - npm install puppeteer  # Puppeteer をローカルにインストール
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
+      - REPOSITORY_URI=513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
+      - echo Logging in to Docker Hub...
+      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
 
   build:
     commands:
-      - echo "Checking if the web page contains 'Welcome' using Puppeteer..."
-      - echo "const puppeteer = require('puppeteer');" > test.js
-      - echo "(async () => {" >> test.js
-      - echo "  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });" >> test.js
-      - echo "  const page = await browser.newPage();" >> test.js
-      - echo "  await page.goto('http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/', { waitUntil: 'domcontentloaded' });" >> test.js
-      - echo "  const content = await page.content();" >> test.js
-      - echo "  if (content.includes('Welcome')) {" >> test.js
-      - echo "    console.log('Test passed: Welcome is visible on the page.');" >> test.js
-      - echo "    process.exit(0);" >> test.js
-      - echo "  } else {" >> test.js
-      - echo "    console.log('Test failed: Welcome is NOT visible on the page.');" >> test.js
-      - echo "    process.exit(1);" >> test.js
-      - echo "  }" >> test.js
-      - echo "  await browser.close();" >> test.js
-      - echo "})();" >> test.js
-      - node test.js  # Puppeteerのスクリプトを実行
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest ./nginx
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
+      - echo "Checking if the web page is accessible..."
+      - URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
+      - curl --head --silent --fail $URL > /dev/null
+      - |
+        if [ $? -eq 0 ]; then
+          echo "Test passed: Web page is accessible."
+        else
+          echo "Test failed: Web page is not accessible."
+          exit 1
+        fi
 
   post_build:
     commands:
-      - echo "Pushing the Docker image to ECR..."
+      - echo Pushing the Docker image to ECR...
       - docker push $REPOSITORY_URI:latest

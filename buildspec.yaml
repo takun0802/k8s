@@ -2,48 +2,50 @@ version: 0.2
 
 phases:
   install:
-    runtime-versions:
-      nodejs: 18
     commands:
-      - echo Installing Puppeteer dependencies...
-      - yum install -y xorg-x11-server-Xvfb libXcomposite libXcursor libXdamage libXext libXi libXtst cups-libs libXScrnSaver libXrandr alsa-lib pango atk at-spi2-atk gtk3 || true
-      - npm install puppeteer
+      - echo "Updating system packages..."
+      - yum update -y
+      - echo "Installing EPEL repository..."
+      - yum install -y epel-release || amazon-linux-extras enable epel
+      - echo "Installing required packages..."
+      - yum install -y chromium
 
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
-      - REPOSITORY_URI=513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
-      - echo Logging in to Docker Hub...
-      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+      - echo "Installing dependencies..."
+      - npm install
 
   build:
     commands:
-      - echo Building the Docker image...
-      - docker build -t $REPOSITORY_URI:latest ./nginx
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
-
-  post_build:
-    commands:
-      - echo Pushing the Docker image to ECR...
-      - docker push $REPOSITORY_URI:latest
-
-      # ELB のエンドポイントを確認
-      - echo "Checking if Load Balancer is accessible..."
-      - curl -I http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/ || exit 1
-
-      # Puppeteer を使って Web ページの表示をテスト
-      - echo "Checking if 'Welcome to NGINX123' is displayed on the web page..."
-      - |
-        node -e "
+      - echo "Starting Puppeteer test..."
+      - node -e "
           const puppeteer = require('puppeteer');
           (async () => {
-            const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+            const browser = await puppeteer.launch({
+              headless: 'new',
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process',
+                '--proxy-server=\"direct://\"',
+                '--proxy-bypass-list=*'
+              ]
+            });
             const page = await browser.newPage();
             try {
+              console.log('Testing ELB connectivity using curl...');
+              const { execSync } = require('child_process');
+              execSync('curl -I http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/ || (echo \"ELB is unreachable from CodeBuild\" && exit 1)', { stdio: 'inherit' });
+
+              console.log('Navigating to the ELB URL...');
               await page.goto('http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/', { waitUntil: 'networkidle2' });
+
+              console.log('Checking for expected text on the page...');
               await page.waitForSelector('h1', { timeout: 5000 });
               const text = await page.evaluate(() => document.body.innerText);
+
               if (text.includes('Welcome to NGINX123')) {
                 console.log('Test passed: Welcome to NGINX123 found.');
                 await browser.close();
@@ -55,7 +57,12 @@ phases:
               }
             } catch (error) {
               console.error('Test execution error:', error);
+              await browser.close();
               process.exit(1);
             }
           })();
         "
+
+  post_build:
+    commands:
+      - echo "Build complete!"

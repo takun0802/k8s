@@ -1,25 +1,37 @@
+version: 0.2
+phases:
+  pre_build:
+  commands:
+    - echo Installing Chrome and Selenium...
+    - yum install -y wget unzip
+    - wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+    - yum install -y ./google-chrome-stable_current_x86_64.rpm
+    - wget https://chromedriver.storage.googleapis.com/122.0.6261.94/chromedriver_linux64.zip
+    - unzip chromedriver_linux64.zip
+    - mv chromedriver /usr/bin/
+
 build:
   commands:
-    - echo Building the Docker image...
-    - docker build -t $REPOSITORY_URI:latest ./nginx
-    - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
-    - echo "Checking if the web page is accessible..."
-    - URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
-    - curl --head --silent --fail $URL > /dev/null
-    - |
-      if [ $? -eq 0 ]; then
-        echo "Test passed: Web page is accessible."
-      else
-        echo "Test failed: Web page is not accessible."
-        exit 1
-      fi
-    - echo "Checking if the web page contains 'Welcome'..."
-    - RESPONSE=$(curl --silent $URL)
-    - echo "$RESPONSE" | grep -q "Welcome"
-    - |
-      if [ $? -eq 0 ]; then
-        echo "Test passed: 'Welcome' is present on the page."
-      else
-        echo "Test failed: 'Welcome' not found on the page."
-        exit 1
-      fi
+    - echo "Checking if the web page contains 'Welcome' using Selenium..."
+    - echo "from selenium import webdriver" > test.py
+    - echo "from selenium.webdriver.chrome.service import Service" >> test.py
+    - echo "from selenium.webdriver.common.by import By" >> test.py
+    - echo "import time" >> test.py
+    - echo "service = Service('/usr/bin/chromedriver')" >> test.py
+    - echo "options = webdriver.ChromeOptions()" >> test.py
+    - echo "options.add_argument('--headless')" >> test.py
+    - echo "driver = webdriver.Chrome(service=service, options=options)" >> test.py
+    - echo "driver.get('$URL')" >> test.py
+    - echo "time.sleep(3)" >> test.py
+    - echo "if 'Welcome' in driver.page_source:" >> test.py
+    - echo "    print('Test passed: Welcome is visible on the page.')" >> test.py
+    - echo "    exit(0)" >> test.py
+    - echo "else:" >> test.py
+    - echo "    print('Test failed: Welcome is NOT visible on the page.')" >> test.py
+    - echo "    exit(1)" >> test.py
+    - python3 test.py
+
+  post_build:
+    commands:
+      - echo Pushing the Docker image to ECR...
+      - docker push $REPOSITORY_URI:latest

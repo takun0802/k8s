@@ -3,67 +3,18 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Updating system packages..."
-      - yum update -y
-      - echo "Installing EPEL repository..."
-      - yum install -y epel-release || amazon-linux-extras enable epel
-      - echo "Installing required packages..."
-      - yum install -y chromium
+      - echo "Installing dependencies..."
+      - npm install -g cypress  # Cypress をインストール
+      - Xvfb :99 &  # 仮想ディスプレイを起動
+      - export DISPLAY=:99  # Xvfb を DISPLAY に設定
 
   pre_build:
     commands:
-      - echo "Installing dependencies..."
-      - npm install
+      - echo "Checking Cypress version..."
+      - cypress --version  # Cypress のバージョンを確認
 
   build:
     commands:
-      - echo "Starting Puppeteer test..."
+      - echo "Running Cypress test..."
       - >
-        node -e '
-        const puppeteer = require("puppeteer");
-        (async () => {
-          const browser = await puppeteer.launch({
-            headless: "new",
-            args: [
-              "--no-sandbox",
-              "--disable-setuid-sandbox",
-              "--disable-dev-shm-usage",
-              "--disable-gpu",
-              "--single-process",
-              "--proxy-server=\"direct://\"",
-              "--proxy-bypass-list=*"
-            ]
-          });
-          const page = await browser.newPage();
-          try {
-            console.log("Testing ELB connectivity using curl...");
-            const { execSync } = require("child_process");
-            execSync("curl -I http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/ || (echo \"ELB is unreachable from CodeBuild\" && exit 1)", { stdio: "inherit" });
-
-            console.log("Navigating to the ELB URL...");
-            await page.goto("http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/", { waitUntil: "networkidle2" });
-
-            console.log("Checking for expected text on the page...");
-            await page.waitForSelector("h1", { timeout: 5000 });
-            const text = await page.evaluate(() => document.body.innerText);
-
-            if (text.includes("Welcome to NGINX123")) {
-              console.log("Test passed: Welcome to NGINX123 found.");
-              await browser.close();
-              process.exit(0);
-            } else {
-              console.error("Test failed: Welcome to NGINX123 not found.");
-              await browser.close();
-              process.exit(1);
-            }
-          } catch (error) {
-            console.error("Test execution error:", error);
-            await browser.close();
-            process.exit(1);
-          }
-        })();
-        '
-
-  post_build:
-    commands:
-      - echo "Build complete!"
+        npx cypress run --headless --browser chrome --spec "cypress/e2e/spec.cy.js"  # Cypress テストの実行

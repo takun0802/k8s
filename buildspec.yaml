@@ -4,7 +4,7 @@ phases:
   install:
     commands:
       - echo "Installing necessary tools..."
-      - sudo amazon-linux-extras enable epel
+      - sudo yum install -y epel-release   # EPELリポジトリを手動でインストール
       - sudo yum install -y curl
   pre_build:
     commands:

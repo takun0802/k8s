@@ -1,30 +1,25 @@
-version: 0.2
-phases:
-  pre_build:
-    commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
-      - REPOSITORY_URI=513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
-      - echo Logging in to Docker Hub...
-      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-
-  build:
-    commands:
-      - echo Building the Docker image...
-      - docker build -t $REPOSITORY_URI:latest ./nginx
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
-      - echo "Checking if the web page is accessible..."
-      - URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
-      - curl --head --silent --fail $URL > /dev/null
-      - |
-        if [ $? -eq 0 ]; then
-          echo "Test passed: Web page is accessible."
-        else
-          echo "Test failed: Web page is not accessible."
-          exit 1
-        fi
-
-  post_build:
-    commands:
-      - echo Pushing the Docker image to ECR...
-      - docker push $REPOSITORY_URI:latest
+build:
+  commands:
+    - echo Building the Docker image...
+    - docker build -t $REPOSITORY_URI:latest ./nginx
+    - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
+    - echo "Checking if the web page is accessible..."
+    - URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
+    - curl --head --silent --fail $URL > /dev/null
+    - |
+      if [ $? -eq 0 ]; then
+        echo "Test passed: Web page is accessible."
+      else
+        echo "Test failed: Web page is not accessible."
+        exit 1
+      fi
+    - echo "Checking if the web page contains 'Welcome'..."
+    - RESPONSE=$(curl --silent $URL)
+    - echo "$RESPONSE" | grep -q "Welcome"
+    - |
+      if [ $? -eq 0 ]; then
+        echo "Test passed: 'Welcome' is present on the page."
+      else
+        echo "Test failed: 'Welcome' not found on the page."
+        exit 1
+      fi

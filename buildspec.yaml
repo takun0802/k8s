@@ -7,19 +7,16 @@ phases:
       - yum install -y curl jq
       - curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
       - yum install -y nodejs
-      - npm install puppeteer  # グローバルインストールをやめる
+      - npm install puppeteer  # Puppeteer をローカルにインストール
 
   build:
     commands:
-      - echo "Setting URL environment variable..."
-      - export URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
-
       - echo "Checking if the web page contains 'Welcome' using Puppeteer..."
       - echo "const puppeteer = require('puppeteer');" > test.js
       - echo "(async () => {" >> test.js
       - echo "  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });" >> test.js
       - echo "  const page = await browser.newPage();" >> test.js
-      - echo "  await page.goto('$URL', { waitUntil: 'domcontentloaded' });" >> test.js
+      - echo "  await page.goto(process.env.URL, { waitUntil: 'domcontentloaded' });" >> test.js
       - echo "  const content = await page.content();" >> test.js
       - echo "  if (content.includes('Welcome')) {" >> test.js
       - echo "    console.log('Test passed: Welcome is visible on the page.');" >> test.js
@@ -30,7 +27,7 @@ phases:
       - echo "  }" >> test.js
       - echo "  await browser.close();" >> test.js
       - echo "})();" >> test.js
-      - node test.js  # Puppeteerのスクリプトを実行
+      - URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/" node test.js  # URLを環境変数で渡す
 
   post_build:
     commands:

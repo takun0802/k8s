@@ -34,7 +34,7 @@ phases:
           (async () => {
             const browser = await puppeteer.launch();
             const page = await browser.newPage();
-            await page.goto('http://localhost');
+            await page.goto('http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/');
             const text = await page.evaluate(() => document.body.innerText);
             if (text.includes('Welcome to NGINX123')) {
               console.log('Test passed: Welcome to NGINX123 found.');

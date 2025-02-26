@@ -18,7 +18,7 @@ phases:
 
       # Webページのアクセシビリティチェック
       - echo "Checking if the web page is accessible..."
-      - URL="http://a46c8267f8b5a46e1a8d9e3e87cbe44d-944449116.ap-northeast-1.elb.amazonaws.com/"
+      - URL="http://http://a04bf845ea5cf4a978fa8c8b4129b442-21507003.ap-northeast-1.elb.amazonaws.com/"
       - curl --head --silent --fail $URL > /dev/null
       - |
         if [ $? -eq 0 ]; then

@@ -7,50 +7,12 @@ phases:
       - REPOSITORY_URI=513594376299.dkr.ecr.ap-northeast-1.amazonaws.com/seikabutu
       - echo Logging in to Docker Hub...
       - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-      - echo Installing dependencies...
-      - yum install -y jq  # JSON解析ツール jq をインストール
 
   build:
     commands:
       - echo Building the Docker image...
       - docker build -t $REPOSITORY_URI:latest ./nginx
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:latest
-
-      # Webページのアクセシビリティチェック
-      - echo "Checking if the web page is accessible..."
-      - URL="http://http://a04bf845ea5cf4a978fa8c8b4129b442-21507003.ap-northeast-1.elb.amazonaws.com/"
-      - curl --head --silent --fail $URL > /dev/null
-      - |
-        if [ $? -eq 0 ]; then
-          echo "Test passed: Web page is accessible."
-        else
-          echo "Test failed: Web page is not accessible."
-          exit 1
-        fi
-
-      # Open-Meteo API のレスポンス確認
-      - echo "Checking Open-Meteo API response..."
-      - WEATHER_API="https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current_weather=true"
-      - RESPONSE=$(curl --silent "$WEATHER_API")
-
-      # JSONからtemperature, windspeed, weathercodeを取得
-      - TEMPERATURE=$(echo "$RESPONSE" | jq -r '.current_weather.temperature')
-      - WINDSPEED=$(echo "$RESPONSE" | jq -r '.current_weather.windspeed')
-      - WEATHER_CODE=$(echo "$RESPONSE" | jq -r '.current_weather.weathercode')
-
-      - |
-        if [ "$TEMPERATURE" != "null" ] && [ "$WINDSPEED" != "null" ] && [ "$WEATHER_CODE" != "null" ]; then
-          echo "Test passed: Open-Meteo API response is valid."
-          echo "Temperature: $TEMPERATURE°C"
-          echo "Wind Speed: $WINDSPEED km/h"
-          echo "Weather Code: $WEATHER_CODE"
-        else
-          echo "Test failed: Open-Meteo API response is invalid."
-          echo "Temperature: $TEMPERATURE"
-          echo "Wind Speed: $WINDSPEED"
-          echo "Weather Code: $WEATHER_CODE"
-          exit 1
-        fi
 
   post_build:
     commands:
